@@ -92,6 +92,9 @@ public:
     /// @}
 };
 
+
+/// @name Binary operations on vectors
+/// @{
 Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3(a.data[0] + b.data[0],
                                                            a.data[1] + b.data[1],
                                                            a.data[2] + b.data[2]); }
@@ -107,7 +110,10 @@ Vec3 operator*(const Vec3& a, const float t) { return Vec3(a.data[0]*t,
 Vec3 operator/(const Vec3& a, const float t) { return Vec3(a.data[0]/t,
                                                            a.data[1]/t,
                                                            a.data[2]/t); }
+/// @}
 
+
+/// Represents a ray. Defined by an origin, and a normalized direction.
 class Ray
 {
 public:
@@ -115,13 +121,14 @@ public:
     Ray( const Vec3& _orig, const Vec3& _dir ) :
         m_origin( _orig ),
         m_direction( _dir )
-    {}
+    { m_direction.normalize(); }
     
     void
     setRay( const Vec3& _orig, const Vec3& _dir )
     {
         m_origin = _orig;
         m_direction = _dir;
+        m_direction.normalize();
     }
     
     const Vec3&
@@ -142,7 +149,7 @@ private:
 };
 
 
-/// image data structure
+/// Image data structure
 class Framebuffer
 {
 public:
@@ -206,12 +213,24 @@ private:
 };
 
 
+class Drawable; // forward declaration
+
+/// Hit point
+class Intersection
+{
+public:
+    float t; ///< Ray parameter at intersection
+    Vec3  p; ///< Intersection position
+    Drawable* obj;
+};
+
+
 /// Base class for a geometric entity in R3
 class Geometry
 {
 public:
     virtual bool
-    intersects( const Ray& ray ) const = 0;
+    intersects( const Ray& ray, const float t_min, const float t_max, Intersection& hit  ) const = 0;
 };
 
 
@@ -240,26 +259,49 @@ public:
 class Drawable
 {
 public:
+    Geometry& geometry;
+    Material& material;
     
 };
+
 
 /// Data structure for the scene
 class World
 {
 public:
-    bool intersects( const Ray& ray )
+    
+    ~World()
+    {
+        while (not m_scene.empty()) {
+            delete m_scene.front();
+            m_scene.pop_front();
+        }
+    }
+    
+    bool intersects( const Ray& ray, const float t_min, const float t_max, Intersection& nearest ) const
     {
         /* for each object
             - test intersection
             - save iterator to closest object
            return closest
          */
-        bool hit = false;
+        bool result = false;
+        Intersection testpt;
+        nearest.t = std::numeric_limits<float>::max();
         
-        return hit;
+        for (const auto& obj: m_scene) {
+            bool hit = obj->geometry.intersects(ray, t_min, nearest.t, testpt);
+            if (true==hit) {
+                nearest = testpt;
+                result = true;
+            }
+        }
+        
+        return result;
     }
 private:
-    std::list<Drawable> m_objects;
+    typedef std::list<Drawable*> scene_t;
+    scene_t m_scene;
 };
 
 
@@ -279,6 +321,7 @@ public:
     }
 };
 
+
 /// sample the world with @a ray, and produce a color.
 Vec3
 sample( const World& scene, const Ray& ray )
@@ -291,7 +334,10 @@ sample( const World& scene, const Ray& ray )
     return color;
 }
 
-int main(int argc, const char * argv[]) {
+
+int
+main(int argc, const char * argv[])
+{
     /*
      dev plan:
      - write test image (DONE)
