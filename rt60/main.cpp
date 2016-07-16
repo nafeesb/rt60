@@ -11,6 +11,7 @@
 #include <list>
 #include <fstream>
 #include <string>
+#include <limits>
 #include <cmath>
 #include <cassert>
 
@@ -53,6 +54,15 @@ public:
     
     /// @name vector arithmetic
     /// @{
+    Vec3& operator+=(const Vec3& rhs)
+    {
+        data[0] += rhs[0];
+        data[1] += rhs[1];
+        data[2] += rhs[2];
+        
+        return *this;
+    }
+    
     Vec3& operator*=(const value_t mult)
     {
         data[0]*=mult; data[1]*=mult; data[2]*=mult;
@@ -72,6 +82,7 @@ public:
     value_t dot( const Vec3& b ) const { return x()*b.x() + y()*b.y() + z()*b.z(); }
     value_t length() const { return std::sqrt( dot(*this) ); }
     value_t length2() const { return dot(*this); }
+    
     void
     normalize()
     {
@@ -80,6 +91,14 @@ public:
             return;
         
         *this /= std::sqrt(len2);
+    }
+    
+    void
+    reverse()
+    {
+        data[0] = -data[0];
+        data[1] = -data[1];
+        data[2] = -data[2];
     }
     
     static Vec3
@@ -95,21 +114,39 @@ public:
 
 /// @name Binary operations on vectors
 /// @{
+
+/// addition
 Vec3 operator+(const Vec3& a, const Vec3& b) { return Vec3(a.data[0] + b.data[0],
                                                            a.data[1] + b.data[1],
                                                            a.data[2] + b.data[2]); }
 
+/// subtraction
+Vec3 operator-(const Vec3& a, const Vec3& b) { return Vec3(a.data[0] - b.data[0],
+                                                           a.data[1] - b.data[1],
+                                                           a.data[2] - b.data[2]); }
+
+
+/// multiplication
 Vec3 operator*(const Vec3& a, const Vec3& b) { return Vec3(a.data[0] * b.data[0],
                                                            a.data[1] * b.data[1],
                                                            a.data[2] * b.data[2]); }
 
+/// scale
 Vec3 operator*(const Vec3& a, const float t) { return Vec3(a.data[0]*t,
                                                            a.data[1]*t,
                                                            a.data[2]*t); }
 
-Vec3 operator/(const Vec3& a, const float t) { return Vec3(a.data[0]/t,
-                                                           a.data[1]/t,
-                                                           a.data[2]/t); }
+/// scale by division
+Vec3 operator/(const Vec3& a, const float t) { return a*(1.f/t); }
+
+/// negation
+Vec3 operator-(const Vec3& a) { return Vec3(-a.data[0],
+                                            -a.data[1],
+                                            -a.data[2]); }
+
+/// Scalar product
+Vec3::value_type dot( const Vec3& a, const Vec3& b ) { return a.dot( b ); }
+
 /// @}
 
 
@@ -213,7 +250,10 @@ private:
 };
 
 
-class Drawable; // forward declaration
+// forward declaration
+class Drawable;
+class Geometry;
+
 
 /// Hit point
 class Intersection
@@ -221,30 +261,8 @@ class Intersection
 public:
     float t; ///< Ray parameter at intersection
     Vec3  p; ///< Intersection position
-    Drawable* obj;
-};
-
-
-/// Base class for a geometric entity in R3
-class Geometry
-{
-public:
-    virtual bool
-    intersects( const Ray& ray, const float t_min, const float t_max, Intersection& hit  ) const = 0;
-};
-
-
-/// Sphere
-class Sphere : public Geometry
-{
-public:
-    bool intersects( const Ray& ray ) const
-    {
-        
-        return false;
-    }
-    
-private:
+    Vec3  n; ///< Normal
+    const Geometry* obj;
 };
 
 
@@ -255,13 +273,86 @@ public:
     
 };
 
-/// Something that can be drawn: geometry + material
-class Drawable
+
+/// Base class for a geometric entity in R3
+class Geometry
 {
 public:
-    Geometry& geometry;
-    Material& material;
+    /// dtor
+    virtual ~Geometry() {};
     
+    /// generic intersection method
+    virtual bool
+    intersects( const Ray& ray,
+                const float t_min, const float t_max,
+                Intersection& hit  ) const = 0;
+};
+
+
+/// Sphere
+class Sphere : public Geometry
+{
+public:
+    Sphere( const Vec3& _pos, const float _rad ) :
+        m_pos(_pos),
+        m_radius(_rad),
+        m_radius_squared( _rad * _rad )
+    {}
+    
+    virtual bool
+    intersects( const Ray& ray, const float t_min, const float t_max, Intersection& hit ) const
+    {
+        // use quadratic equation to compute ray-sphere intersection points
+        const Vec3 rc = ray.origin() - m_pos;
+        const float a = dot( ray.direction(), ray.direction() );
+        const float b = 2.f * dot( ray.direction(), rc );
+        const float c = dot( rc, rc ) - m_radius_squared;
+        
+        const float discriminant = b*b - 4.f * a * c;
+        if (discriminant>0) {
+            // real solutions
+            float t = (-b - sqrt(discriminant)) / (2.f*a);
+            if( (t>t_min) && (t<t_max) ) {
+                hit.t = t;
+                hit.p = ray.point(t);
+                hit.n = (hit.p-m_pos)*(1.f/m_radius);
+                hit.obj = this;
+                return true;
+            }
+            
+            
+            t = (-b + sqrt(discriminant)) / (2.f*a);
+            if( (t>t_min) && (t<t_max) ) {
+                hit.t = t;
+                hit.p = ray.point(t);
+                hit.n = (hit.p-m_pos)*(1.f/m_radius);
+                hit.obj = this;
+                return true;
+            }
+            
+        }
+        
+        return false;
+    }
+    
+    /// returns a random point inside a unit sphere
+    static Vec3
+    random_point_inside()
+    {
+        // use rejection sampling
+        
+        Vec3 pos;
+        do {
+            pos = Vec3(drand48(), drand48(), drand48()) * 2.f - Vec3(1);
+        } while( dot(pos,pos) >= 1.f );
+
+        return pos;
+    }
+    
+private:
+    Vec3             m_pos;
+    Vec3::value_type m_radius;
+    Vec3::value_type m_radius_squared;
 };
 
 
@@ -272,6 +363,7 @@ public:
     
     ~World()
     {
+        // delete list elements in a single pass
         while (not m_scene.empty()) {
             delete m_scene.front();
             m_scene.pop_front();
@@ -285,22 +377,29 @@ public:
             - save iterator to closest object
            return closest
          */
-        bool result = false;
+        bool hit_something = false;
         Intersection testpt;
         nearest.t = std::numeric_limits<float>::max();
         
         for (const auto& obj: m_scene) {
-            bool hit = obj->geometry.intersects(ray, t_min, nearest.t, testpt);
+            bool hit = obj->intersects(ray, t_min, nearest.t, testpt);
             if (true==hit) {
                 nearest = testpt;
-                result = true;
+                hit_something = true;
             }
         }
         
-        return result;
+        return hit_something;
     }
+    
+    void
+    addDrawable( Geometry* obj )
+    {
+        m_scene.push_back(obj);
+    }
+    
 private:
-    typedef std::list<Drawable*> scene_t;
+    typedef std::list<Geometry*> scene_t;
     scene_t m_scene;
 };
 
@@ -322,15 +421,26 @@ public:
 };
 
 
-/// sample the world with @a ray, and produce a color.
+/// sample the @a world with @a ray, and produce a color.
 Vec3
 sample( const World& scene, const Ray& ray )
 {
     Vec3 color;
-    Vec3 unit_v = Vec3::unit_vector(ray.direction());
-    const float a = 0.5 * (unit_v.y()+1);
-    color = (1.0-a) * Vec3(1,1,1) + a * Vec3(0.5,0.7,1.0);
+    Intersection nearest;
+
+    bool hit = scene.intersects(ray, 0.f, numeric_limits<float>::max(), nearest);
     
+    if (hit) {
+        // lambertian
+        Vec3 bounce = nearest.n + Sphere::random_point_inside();
+        bounce.normalize();
+        color = Vec3(0.3,0.3,0.6) * sample( scene, Ray(nearest.p, bounce) );
+    }
+    else {
+        Vec3 unit_v = Vec3::unit_vector(ray.direction());
+        const float a = 0.5 * (unit_v.y()+1);
+        color = (1.0-a) * Vec3(1,1,1) + a * Vec3(0.5,0.7,1.0);
+    }
     return color;
 }
 
@@ -338,6 +448,8 @@ sample( const World& scene, const Ray& ray )
 int
 main(int argc, const char * argv[])
 {
+    srand48(0xDEADBEEF);
+    
     /*
      dev plan:
      - write test image (DONE)
@@ -353,15 +465,27 @@ main(int argc, const char * argv[])
         - create ray
         - sample ray
      */
+    const int num_samples = 16;
     const Vec3 origin(0,0,0);
     Camera camera = { Vec3(-2,-1,-1), Vec3(4,2,0) };
     
+    // create a scene
+    scene.addDrawable( new Sphere( Vec3(0,0,-1), 0.5 ));
+    scene.addDrawable( new Sphere( Vec3(0,-50.5,-1), 50 ));
+    
     for (int j=0; j<H; ++j) {
         for (int i=0; i<W; ++i) { // for each pixel
-            const float U = float(i)/float(W);
-            const float V = float(j)/float(H);
-            Ray ray( origin, camera.project(U, V) );
-            const Vec3 color = sample( scene, ray );
+            
+            Vec3 color;
+            for (int s=0; s<num_samples; ++s) {
+                const float U = float(i+drand48())/float(W);
+                const float V = float(j+drand48())/float(H);
+                Ray ray( origin, camera.project(U, V) );
+                color += sample( scene, ray );
+            }
+            
+            color /= num_samples;
+
             frame(i,j) = color;
         }
     }

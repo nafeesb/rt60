@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7FEF5FD41D3A070600C1A20C /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = 7FEF5FD31D3A070600C1A20C /* README.md */; };
 		7FF138B81CDECC76002D34E0 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7FF138B71CDECC76002D34E0 /* main.cpp */; };
 /* End PBXBuildFile section */
 
@@ -23,6 +24,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7FEF5FD31D3A070600C1A20C /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7FF138B41CDECC76002D34E0 /* rt60 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = rt60; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FF138B71CDECC76002D34E0 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -43,6 +45,7 @@
 			children = (
 				7FF138B61CDECC76002D34E0 /* rt60 */,
 				7FF138B51CDECC76002D34E0 /* Products */,
+				7FEF5FD31D3A070600C1A20C /* README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -118,6 +121,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FEF5FD41D3A070600C1A20C /* README.md in Sources */,
 				7FF138B81CDECC76002D34E0 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -232,6 +236,7 @@
 				7FF138BD1CDECC76002D34E0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
