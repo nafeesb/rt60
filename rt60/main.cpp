@@ -29,16 +29,16 @@ public:
     Vec3() :
         data{0,0,0}
     {}
-    
+
     Vec3( const value_t x, const value_t y, const value_t z) :
         data{x,y,z}
     {}
-    
+
     Vec3( const float v ) :
         data{v,v,v}
     {}
     /// @}
-    
+
     /// @name accessors
     /// @{
     value_t x() const { return data[0]; }
@@ -47,11 +47,11 @@ public:
     value_t r() const { return data[0]; }
     value_t g() const { return data[1]; }
     value_t b() const { return data[2]; }
-    
+
     value_t& operator[](int comp) { return data[comp]; }
     const value_t& operator[](int comp) const { return data[comp]; }
     /// @}
-    
+
     /// @name vector arithmetic
     /// @{
     Vec3& operator+=(const Vec3& rhs)
@@ -59,10 +59,10 @@ public:
         data[0] += rhs[0];
         data[1] += rhs[1];
         data[2] += rhs[2];
-        
+
         return *this;
     }
-    
+
     Vec3& operator*=(const value_t mult)
     {
         data[0]*=mult; data[1]*=mult; data[2]*=mult;
@@ -76,23 +76,23 @@ public:
         return *this;
     }
     /// @}
-    
+
     /// @name vector algebra
     /// @{
     value_t dot( const Vec3& b ) const { return x()*b.x() + y()*b.y() + z()*b.z(); }
     value_t length() const { return std::sqrt( dot(*this) ); }
     value_t length2() const { return dot(*this); }
-    
+
     void
     normalize()
     {
         const value_t len2 = length2();
         if (0.f==len2)
             return;
-        
+
         *this /= std::sqrt(len2);
     }
-    
+
     void
     reverse()
     {
@@ -100,7 +100,7 @@ public:
         data[1] = -data[1];
         data[2] = -data[2];
     }
-    
+
     static Vec3
     unit_vector( const Vec3& src )
     {
@@ -159,7 +159,7 @@ public:
         m_origin( _orig ),
         m_direction( _dir )
     { m_direction.normalize(); }
-    
+
     void
     setRay( const Vec3& _orig, const Vec3& _dir )
     {
@@ -167,10 +167,10 @@ public:
         m_direction = _dir;
         m_direction.normalize();
     }
-    
+
     const Vec3&
     direction() const { return m_direction; }
-    
+
     const Vec3&
     origin() const { return m_origin; }
 
@@ -179,7 +179,7 @@ public:
     {
         return m_direction * t + m_origin;
     }
-    
+
 private:
     Vec3 m_origin;
     Vec3 m_direction;
@@ -195,19 +195,19 @@ public:
         m_height(h),
         m_buffer(w*h)
     {}
-    
+
     const Vec3&
     operator()( int x, int y ) const
     {
         return m_buffer[m_width*y+x];
     }
-    
+
     Vec3&
     operator()( int x, int y )
     {
         return m_buffer[m_width*y+x];
     }
-    
+
     /// write a PPM file
     void
     write( const string& fname )
@@ -226,7 +226,7 @@ public:
             }
         }
     }
-    
+
     void
     test()
     {
@@ -242,7 +242,7 @@ public:
         }
         write( "test.ppm" );
     }
-    
+
 private:
     const int m_width;
     const int m_height;
@@ -270,7 +270,7 @@ public:
 class Material
 {
 public:
-    
+
 };
 
 
@@ -280,7 +280,7 @@ class Geometry
 public:
     /// dtor
     virtual ~Geometry() {};
-    
+
     /// generic intersection method
     virtual bool
     intersects( const Ray& ray,
@@ -298,7 +298,7 @@ public:
         m_radius(_rad),
         m_radius_squared( _rad * _rad )
     {}
-    
+
     virtual bool
     intersects( const Ray& ray, const float t_min, const float t_max, Intersection& hit ) const
     {
@@ -307,7 +307,7 @@ public:
         const float a = dot( ray.direction(), ray.direction() );
         const float b = 2.f * dot( ray.direction(), rc );
         const float c = dot( rc, rc ) - m_radius_squared;
-        
+
         const float discriminant = b*b - 4.f * a * c;
         if (discriminant>0) {
             // real solutions
@@ -319,8 +319,8 @@ public:
                 hit.obj = this;
                 return true;
             }
-            
-            
+
+
             t = (-b + sqrt(discriminant)) / (2.f*a);
             if( (t>t_min) && (t<t_max) ) {
                 hit.t = t;
@@ -329,18 +329,18 @@ public:
                 hit.obj = this;
                 return true;
             }
-            
+
         }
-        
+
         return false;
     }
-    
+
     /// returns a random point inside a unit sphere
     static Vec3
     random_point_inside()
     {
         // use rejection sampling
-        
+
         Vec3 pos;
         do {
             pos = Vec3(drand48(), drand48(), drand48()) * 2.f - Vec3(1);
@@ -348,7 +348,7 @@ public:
 
         return pos;
     }
-    
+
 private:
     Vec3             m_pos;
     Vec3::value_type m_radius;
@@ -360,7 +360,7 @@ private:
 class World
 {
 public:
-    
+
     ~World()
     {
         // delete list elements in a single pass
@@ -369,7 +369,7 @@ public:
             m_scene.pop_front();
         }
     }
-    
+
     bool intersects( const Ray& ray, const float t_min, const float t_max, Intersection& nearest ) const
     {
         /* for each object
@@ -380,7 +380,7 @@ public:
         bool hit_something = false;
         Intersection testpt;
         nearest.t = std::numeric_limits<float>::max();
-        
+
         for (const auto& obj: m_scene) {
             bool hit = obj->intersects(ray, t_min, nearest.t, testpt);
             if (true==hit) {
@@ -388,16 +388,16 @@ public:
                 hit_something = true;
             }
         }
-        
+
         return hit_something;
     }
-    
+
     void
     addDrawable( Geometry* obj )
     {
         m_scene.push_back(obj);
     }
-    
+
 private:
     typedef std::list<Geometry*> scene_t;
     scene_t m_scene;
@@ -429,7 +429,7 @@ sample( const World& scene, const Ray& ray )
     Intersection nearest;
 
     bool hit = scene.intersects(ray, 0.f, numeric_limits<float>::max(), nearest);
-    
+
     if (hit) {
         // lambertian
         Vec3 bounce = nearest.n + Sphere::random_point_inside();
@@ -449,7 +449,7 @@ int
 main(int argc, const char * argv[])
 {
     srand48(0xDEADBEEF);
-    
+
     /*
      dev plan:
      - write test image (DONE)
@@ -458,9 +458,9 @@ main(int argc, const char * argv[])
     const int W=600;
     const int H=300;
     Framebuffer frame(W,H);
-    
+
     World scene;
-    
+
     /* for each pixel:
         - create ray
         - sample ray
@@ -468,14 +468,14 @@ main(int argc, const char * argv[])
     const int num_samples = 16;
     const Vec3 origin(0,0,0);
     Camera camera = { Vec3(-2,-1,-1), Vec3(4,2,0) };
-    
+
     // create a scene
     scene.addDrawable( new Sphere( Vec3(0,0,-1), 0.5 ));
     scene.addDrawable( new Sphere( Vec3(0,-50.5,-1), 50 ));
-    
+
     for (int j=0; j<H; ++j) {
         for (int i=0; i<W; ++i) { // for each pixel
-            
+
             Vec3 color;
             for (int s=0; s<num_samples; ++s) {
                 const float U = float(i+drand48())/float(W);
@@ -483,14 +483,14 @@ main(int argc, const char * argv[])
                 Ray ray( origin, camera.project(U, V) );
                 color += sample( scene, ray );
             }
-            
+
             color /= num_samples;
 
             frame(i,j) = color;
         }
     }
 
-    frame.write("test.ppm");
-    
+    frame.write("scene.ppm");
+
     return 0;
 }
